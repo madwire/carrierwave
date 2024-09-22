@@ -1016,10 +1016,10 @@ describe CarrierWave::Uploader do
       end
     end
 
-    it "does not change the version's #filename" do
+    it "does not change the version's stored filename" do
       @uploader.cache!(File.open(file_path('landscape.jpg')))
       expect(@uploader.thumb.file.filename).to eq 'landscape.bin'
-      expect(@uploader.thumb.filename).to eq 'landscape.jpg'
+      expect(@uploader.thumb.filename).to eq 'landscape.bin'
       expect(File.basename(@uploader.thumb.store_path)).to eq 'thumb_landscape.jpg'
     end
 
@@ -1030,7 +1030,7 @@ describe CarrierWave::Uploader do
         end
       end
 
-      it "changes #filename to have the extension" do
+      it "changes stored filename to have the extension" do
         @uploader.store!(File.open(file_path('landscape.jpg')))
         expect(@uploader.thumb.identifier).to eq 'landscape.jpg'
         expect(File.basename(@uploader.thumb.store_path)).to eq 'thumb_landscape.bin'

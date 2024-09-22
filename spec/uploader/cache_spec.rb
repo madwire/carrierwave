@@ -3,7 +3,7 @@ require 'spec_helper'
 describe CarrierWave::Uploader do
   let(:uploader_class) { Class.new(CarrierWave::Uploader::Base) }
   let(:uploader) { uploader_class.new }
-  let(:test_file_name) { "test.jpg"}
+  let(:test_file_name) { "test.jpg" }
   let(:test_file_path) { file_path(test_file_name) }
   let(:test_file) { File.open(test_file_path) }
   let(:permission) { 0o777 }
@@ -161,6 +161,7 @@ describe CarrierWave::Uploader do
 
           it "uses #move_to during #cache!" do
             moved_file = double('moved file').as_null_object
+            allow(moved_file).to receive(:filename).and_return(tmp_file_name)
 
             expect_any_instance_of(CarrierWave::SanitizedFile).to receive(:move_to).with(workfile_path, permission, permission).and_return(moved_file)
             expect(moved_file).to receive(:move_to).with(cached_path, permission, permission, true)
@@ -190,6 +191,7 @@ describe CarrierWave::Uploader do
 
           it "uses #move_to during cache!" do
             moved_file = double('moved file').as_null_object
+            allow(moved_file).to receive(:filename).and_return(tmp_file_name)
 
             expect_any_instance_of(CarrierWave::SanitizedFile).to receive(:copy_to).with(workfile_path, permission, permission).and_return(moved_file)
             expect(moved_file).to receive(:move_to).with(cached_path, permission, permission, true)
@@ -224,7 +226,8 @@ describe CarrierWave::Uploader do
   end
 
   describe '#retrieve_from_cache!' do
-    before { uploader.retrieve_from_cache!("#{cache_id}/#{test_file_name}") }
+    let(:cache_name) { "#{cache_id}/#{test_file_name}" }
+    before { uploader.retrieve_from_cache!(cache_name) }
 
     it "caches a file" do
       expect(uploader.file).to be_an_instance_of(CarrierWave::SanitizedFile)
@@ -276,6 +279,61 @@ describe CarrierWave::Uploader do
         expect {
           uploader.retrieve_from_cache!('1369894322-345-1234-2255/te??%st.jpeg')
         }.to raise_error(CarrierWave::InvalidParameter)
+      end
+    end
+
+    context "when the filename changes by processing" do
+      let(:uploader_for_cache) do
+        uploader_class.class_eval do
+          def rename
+            file.move_to 'test.bin'
+          end
+          process :rename
+        end
+        uploader_class.new
+      end
+      let(:cache_name) do
+        uploader_for_cache.cache!(test_file)
+        uploader_for_cache.cache_name
+      end
+
+      it 'uses the changed filename for cache_name' do
+        expect(File.basename(cache_name)).to eq("test.bin")
+      end
+
+      it 'retrieves the cached file successfully' do
+        expect(uploader.filename).to eq("test.bin")
+        expect(uploader.send(:original_filename)).to eq("test.bin")
+        expect(uploader.file).to be_present
+      end
+    end
+
+    context "when the cache_name was generated in the pre CarrierWave 3.1 way, which is to use the unchanged filename" do
+      let(:test_file_name) { "landscape.jpg" }
+      let(:uploader_for_cache) do
+        uploader_class.class_eval do
+          include CarrierWave::MiniMagick
+          process convert: :png
+
+          def cache_name
+            File.join(cache_id, "landscape.jpg") if cache_id
+          end
+        end
+        uploader_class.new
+      end
+      let(:cache_name) do
+        uploader_for_cache.cache!(test_file)
+        uploader_for_cache.cache_name
+      end
+
+      it 'uses the unchanged filename for cache_name' do
+        expect(File.basename(cache_name)).to eq("landscape.jpg")
+      end
+
+      it 'retrieves the cached file successfully' do
+        expect(uploader.filename).to eq("landscape.jpg")
+        expect(uploader.send(:full_original_filename)).to eq("landscape.png")
+        expect(uploader.file).to be_present
       end
     end
   end

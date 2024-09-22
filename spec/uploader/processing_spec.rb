@@ -51,87 +51,93 @@ describe CarrierWave::Uploader do
     end
 
     context "when there is an 'if' condition" do
+      let(:file) { CarrierWave::SanitizedFile.new(file_path('test.jpg')) }
+
       it "calls the processor if the condition method returns true" do
         uploader_class.process :resize => [200, 300], :if => :true?
         uploader_class.process :fancy, :if => :true?
-        expect(uploader).to receive(:true?).with("test.jpg").twice.and_return(true)
+        expect(uploader).to receive(:true?).with(file).twice.and_return(true)
         expect(uploader).to receive(:resize).with(200, 300)
         expect(uploader).to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
 
       it "doesn't call the processor if the condition method returns false" do
         uploader_class.process :resize => [200, 300], :if => :false?
         uploader_class.process :fancy, :if => :false?
-        expect(uploader).to receive(:false?).with("test.jpg").twice.and_return(false)
+        expect(uploader).to receive(:false?).with(file).twice.and_return(false)
         expect(uploader).not_to receive(:resize)
         expect(uploader).not_to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
 
       it "calls the processor if the condition block returns true" do
         uploader_class.process :resize => [200, 300], :if => lambda{|record, args| record.true?(args[:file])}
         uploader_class.process :fancy, :if => :true?
-        expect(uploader).to receive(:true?).with("test.jpg").twice.and_return(true)
+        expect(uploader).to receive(:true?).with(file).twice.and_return(true)
         expect(uploader).to receive(:resize).with(200, 300)
         expect(uploader).to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
 
       it "doesn't call the processor if the condition block returns false" do
         uploader_class.process :resize => [200, 300], :if => lambda{|record, args| record.false?(args[:file])}
         uploader_class.process :fancy, :if => :false?
-        expect(uploader).to receive(:false?).with("test.jpg").twice.and_return(false)
+        expect(uploader).to receive(:false?).with(file).twice.and_return(false)
         expect(uploader).not_to receive(:resize)
         expect(uploader).not_to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
     end
 
     context "when there is an 'unless' condition" do
+      let(:file) { CarrierWave::SanitizedFile.new(file_path('test.jpg')) }
+
       it "doesn't call the processor if the condition method returns true" do
         uploader_class.process :resize => [200, 300], :unless => :true?
         uploader_class.process :fancy, :unless => :true?
-        expect(uploader).to receive(:true?).with("test.jpg").twice.and_return(true)
+        expect(uploader).to receive(:true?).with(file).twice.and_return(true)
         expect(uploader).not_to receive(:resize).with(200, 300)
         expect(uploader).not_to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
 
       it "calls the processor if the condition method returns false" do
         uploader_class.process :resize => [200, 300], :unless => :false?
         uploader_class.process :fancy, :unless => :false?
-        expect(uploader).to receive(:false?).with("test.jpg").twice.and_return(false)
+        expect(uploader).to receive(:false?).with(file).twice.and_return(false)
         expect(uploader).to receive(:resize)
         expect(uploader).to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
 
       it "doesn't call the processor if the condition block returns true" do
         uploader_class.process :resize => [200, 300], :unless => lambda{|record, args| record.true?(args[:file])}
         uploader_class.process :fancy, :unless => :true?
-        expect(uploader).to receive(:true?).with("test.jpg").twice.and_return(true)
+        expect(uploader).to receive(:true?).with(file).twice.and_return(true)
         expect(uploader).not_to receive(:resize).with(200, 300)
         expect(uploader).not_to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
 
       it "calls the processor if the condition block returns false" do
         uploader_class.process :resize => [200, 300], :unless => lambda{|record, args| record.false?(args[:file])}
         uploader_class.process :fancy, :unless => :false?
-        expect(uploader).to receive(:false?).with("test.jpg").twice.and_return(false)
+        expect(uploader).to receive(:false?).with(file).twice.and_return(false)
         expect(uploader).to receive(:resize)
         expect(uploader).to receive(:fancy)
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
     end
 
     context "when there are additional method key word arguments" do
+      let(:file) { CarrierWave::SanitizedFile.new(file_path('test.jpg')) }
+
       it "calls the processor if the condition method returns true" do
         uploader_class.process :resize => [200, 300, {combine_options: { quality: 70 }}], :if => :true?
-        expect(uploader).to receive(:true?).with("test.jpg").once.and_return(true)
+        expect(uploader).to receive(:true?).with(file).once.and_return(true)
         expect(uploader).to receive(:resize).with(200, 300, combine_options: { quality: 70 })
-        uploader.process!("test.jpg")
+        uploader.process!(file)
       end
     end
 
@@ -194,19 +200,20 @@ describe CarrierWave::Uploader do
       uploader.cache!(File.open(file_path('landscape.jpg')))
       expect(uploader).to be_format('png')
       expect(uploader.file.filename).to eq 'landscape.png'
+      expect(uploader.identifier).to eq 'landscape.png'
     end
 
-    it "does not change #original_filename but changes #cache_path and #url to have new extension" do
+    it "changes #original_filename, #cache_path and #url to have new extension" do
       uploader.cache!(File.open(file_path('landscape.jpg')))
-      expect(uploader.send(:original_filename)).to eq 'landscape.jpg'
-      expect(uploader.cache_name.split('/').last).to eq 'landscape.jpg'
+      expect(uploader.send(:original_filename)).to eq 'landscape.png'
+      expect(uploader.cache_name.split('/').last).to eq 'landscape.png'
       expect(File.basename(uploader.cache_path)).to eq 'landscape.png'
       expect(File.basename(uploader.url)).to eq 'landscape.png'
     end
 
     it "changes #filename to have new extension" do
       uploader.store!(File.open(file_path('landscape.jpg')))
-      expect(uploader.identifier).to eq 'landscape.jpg'
+      expect(uploader.identifier).to eq 'landscape.png'
       expect(File.basename(uploader.store_path)).to eq 'landscape.png'
       expect(File.basename(uploader.url)).to eq 'landscape.png'
     end
@@ -260,6 +267,29 @@ describe CarrierWave::Uploader do
     end
   end
 
+  context "when converting format not using CarrierWave::MiniMagick#convert" do
+    let(:another_uploader) { uploader_class.new }
+    before do
+      uploader_class.class_eval do
+        include CarrierWave::MiniMagick
+        process :convert_to_png
+
+        def convert_to_png
+          minimagick! do |image|
+            image.convert('png')
+          end
+        end
+      end
+    end
+
+    it "changes the extension" do
+      uploader.cache!(File.open(file_path('landscape.jpg')))
+      expect(uploader).to be_format('png')
+      expect(uploader.file.filename).to eq 'landscape.png'
+      expect(uploader.identifier).to eq 'landscape.png'
+    end
+  end
+
   context "when file extension changes not using #convert" do
     let(:another_uploader) { uploader_class.new }
     before do
@@ -271,22 +301,22 @@ describe CarrierWave::Uploader do
       end
     end
 
-    it "performs the processing without changing #idenfitier" do
+    it "performs the processing with changing #idenfitier" do
       uploader.cache!(File.open(file_path('landscape.jpg')))
       expect(uploader.file.filename).to eq 'landscape.bin'
-      expect(uploader.identifier).to eq 'landscape.jpg'
+      expect(uploader.identifier).to eq 'landscape.bin'
     end
 
-    context "but applying #force_extension" do
+    context "with applying #force_extension" do
       before do
         uploader_class.class_eval do
           force_extension '.bin'
         end
       end
 
-      it "changes #filename to have the extension" do
+      it "does not change the behavior" do
         uploader.store!(File.open(file_path('landscape.jpg')))
-        expect(uploader.identifier).to eq 'landscape.jpg'
+        expect(uploader.identifier).to eq 'landscape.bin'
         expect(File.basename(uploader.store_path)).to eq 'landscape.bin'
       end
     end

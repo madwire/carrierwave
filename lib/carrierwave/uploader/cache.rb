@@ -132,7 +132,7 @@ module CarrierWave
 
         @identifier = nil
         @staged = true
-        @filename = new_file.filename
+        # Set original_filename to make it usable for determining workfile_path
         self.original_filename = new_file.filename
 
         begin
@@ -144,6 +144,7 @@ module CarrierWave
           end
 
           with_callbacks(:cache, @file) do
+            self.original_filename = @filename = @file.filename
             @file = cache_storage.cache!(@file)
           end
         ensure
@@ -217,6 +218,10 @@ module CarrierWave
       # We can override the full_original_filename method in other modules
       def full_original_filename
         forcing_extension(original_filename)
+      end
+
+      def set_processed_filename(file)
+        @filename = file.filename if file
       end
     end # Cache
   end # Uploader
