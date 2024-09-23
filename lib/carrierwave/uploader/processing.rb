@@ -66,11 +66,6 @@ module CarrierWave
           condition = new_processors.delete(:if) || new_processors.delete(:unless)
           new_processors.each do |processor, processor_args|
             self.processors += [[processor, processor_args, condition, condition_type]]
-
-            if processor == :convert
-              # Treat :convert specially, since it should trigger the file extension change
-              force_extension processor_args
-            end
           end
         end
       end # ClassMethods

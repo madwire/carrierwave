@@ -956,6 +956,13 @@ describe CarrierWave::Uploader do
       expect(@another_uploader.thumb.url).to eq @uploader.thumb.url
     end
 
+    it 'does not allow conditionals' do
+      @uploader_class.version(:preview) do
+        process convert: :png, if: :true?
+      end
+      expect { @uploader.preview }.to raise_error /Conditionals are now allowed/
+    end
+
     context 'with base filename overridden' do
       before do
         @uploader_class.class_eval do

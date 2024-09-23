@@ -180,6 +180,7 @@ describe CarrierWave::Uploader do
     before do
       @cached_file = double('a cached file')
       allow(@cached_file).to receive(:delete)
+      allow(@cached_file).to receive(:exists?)
 
       @stored_file = double('a stored file')
       allow(@stored_file).to receive(:path).and_return('/path/to/somewhere')

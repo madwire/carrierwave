@@ -267,6 +267,57 @@ describe CarrierWave::Uploader do
     end
   end
 
+  context "when using #convert conditionally" do
+    before do
+      uploader_class.class_eval do
+        include CarrierWave::MiniMagick
+        process convert: :png, if: :process?
+      end
+    end
+
+    it "changes the extension when processed" do
+      allow(uploader).to receive(:process?).and_return(true)
+      uploader.store!(File.open(file_path('landscape.jpg')))
+      expect(uploader).to be_format('png')
+      expect(uploader.file.filename).to eq 'landscape.png'
+      expect(uploader.identifier).to eq 'landscape.png'
+    end
+
+    it "keeps the extension when unprocessed" do
+      allow(uploader).to receive(:process?).and_return(false)
+      uploader.store!(File.open(file_path('landscape.jpg')))
+      expect(uploader).to be_format('jpeg')
+      expect(uploader.file.filename).to eq 'landscape.jpg'
+      expect(uploader.identifier).to eq 'landscape.jpg'
+    end
+
+    context "with #filename overridden" do
+      let(:changed_extension) { '.png' }
+
+      before do
+        uploader_class.class_eval <<-RUBY, __FILE__, __LINE__+1
+          def filename
+            "image.\#{file.extension}"
+          end
+        RUBY
+      end
+
+      it "changes the extension when processed" do
+        allow(uploader).to receive(:process?).and_return(true)
+        uploader.store!(File.open(file_path('landscape.jpg')))
+        expect(uploader.identifier).to eq 'image.png'
+        expect(uploader.url).to eq '/uploads/image.png'
+      end
+
+      it "changes the extension when unprocessed" do
+        allow(uploader).to receive(:process?).and_return(false)
+        uploader.store!(File.open(file_path('landscape.jpg')))
+        expect(uploader.identifier).to eq 'image.jpg'
+        expect(uploader.url).to eq '/uploads/image.jpg'
+      end
+    end
+  end
+
   context "when converting format not using CarrierWave::MiniMagick#convert" do
     let(:another_uploader) { uploader_class.new }
     before do

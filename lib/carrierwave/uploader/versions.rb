@@ -27,6 +27,18 @@ module CarrierWave
           @klass.processors = []
           @klass.version_options = @options
           @klass.class_eval <<-RUBY, __FILE__, __LINE__ + 1
+            def self.process(*args)
+              super
+              processors.each do |processor, processor_args, condition, _|
+                next unless processor == :convert
+
+                raise 'Conditionals are now allowed for `process :convert` within versions, as filename needs to be deterministic' if condition
+
+                # Treat :convert specially, since it should trigger the file extension change
+                force_extension processor_args
+              end
+            end
+
             # Define the enable_processing method for versions so they get the
             # value from the parent class unless explicitly overwritten
             def self.enable_processing(value=nil)

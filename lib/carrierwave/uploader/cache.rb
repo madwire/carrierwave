@@ -169,6 +169,14 @@ module CarrierWave
           @staged = true
           @filename = original_filename
           @file = cache_storage.retrieve_from_cache!(full_original_filename)
+          unless @file.exists?
+            # For compatibility with CarrierWave 3.0.x
+            extension = self.class.processors.reverse.detect do |processor, *_|
+              processor == :convert
+            end&.[](1)
+            self.force_extension = extension
+            @file = cache_storage.retrieve_from_cache!(full_original_filename) if extension
+          end
         end
       end
 
