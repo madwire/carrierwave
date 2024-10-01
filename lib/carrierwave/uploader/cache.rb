@@ -90,7 +90,7 @@ module CarrierWave
       end
 
       def sanitized_file
-        ActiveSupport::Deprecation.warn('#sanitized_file is deprecated, use #file instead.')
+        CarrierWave.deprecator.warn('#sanitized_file is deprecated, use #file instead.')
         file
       end
 

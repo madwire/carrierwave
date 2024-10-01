@@ -21,6 +21,10 @@ module CarrierWave
     def tmp_path
       @tmp_path ||= File.expand_path(File.join('..', 'tmp'), root)
     end
+
+    def deprecator
+      @deprecator ||= ActiveSupport::Deprecation.new("#{CarrierWave::VERSION.split('.')[0].to_i + 1}.0", "CarrierWave")
+    end
   end
 
 end
@@ -71,6 +75,10 @@ elsif defined?(Rails)
         ActiveSupport.on_load :active_record do
           require 'carrierwave/orm/activerecord'
         end
+      end
+
+      initializer "carrierwave.deprecator" do |app|
+        app.deprecators[:carrierwave] = CarrierWave.deprecator if app.respond_to?(:deprecators)
       end
 
       config.before_eager_load do
